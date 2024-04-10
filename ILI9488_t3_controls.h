@@ -716,8 +716,8 @@ public:
 			d->setFont(f);
 
 			if ((x_offset == 0) && (y_offset == 0)){
-				d->getTextBounds(label, 0, 0, &x1, &y1, &w, &h);
-				d->setCursor(x - (w/2), y - (h/2));
+				d->getTextBounds(label, 0, 0, &x1, &y1, &tw, &th);
+				d->setCursor(x - (tw/2), y - (th/2));
 			}
 			else {
 				d->setCursor(x + x_offset , y + y_offset);
@@ -902,7 +902,7 @@ private:
 	int16_t x1 = 0;
 	int16_t y1 = 0;
 	int16_t x, y;
-	uint16_t w, h;
+	uint16_t w, h, tw, th;
 	int16_t x_offset, y_offset;
 	int16_t iconh, iconw;
 	bool redraw;
