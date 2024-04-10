@@ -102,7 +102,7 @@ rev		date			author				change
 #define C_DKGREY      	0x3186
 
 #define C_MDGREY      	0x7BCF
-
+#define MAXCHARLEN 20
 
 #define B_PRESSED true
 #define B_RELEASED false
@@ -536,14 +536,14 @@ private:
 Button class inspired by Adafruit, but added several methods
 
 */
-
 class Button {
 public:
     Button(ILI9488_t3 *Display) {d = Display; }
 
-	void init(int16_t ButtonX, int16_t ButtonY, uint8_t ButtonWidth, uint8_t ButtonHeight,
+// text on buttons
+	void init(int16_t ButtonX, int16_t ButtonY, int16_t ButtonWidth, int16_t ButtonHeight,
 		uint16_t OutlineColor, uint16_t ButtonColor, uint16_t TextColor, uint16_t BackgroundColor,
-		const char *ButtonText, int TextOffsetX, int TextOffsetY, const ILI9488_t3_font_t &TextFont ) {
+		const char *ButtonText, int16_t TextOffsetX, int16_t TextOffsetY, const ILI9488_t3_font_t &TextFont ) {
 
 		x = ButtonX;
 		y = ButtonY;
@@ -553,13 +553,85 @@ public:
 		fillcolor = ButtonColor;
 		textcolor = TextColor;
 		backcolor = BackgroundColor;
-		disablecolorfill = C_DISABLE_DARK;
-		disablecolortext = C_DISABLE_MED;
+		disablecolorfill = C_DISABLE_LIGHT;
+		disablecolortext = C_DISABLE_DARK;
 		x_offset = TextOffsetX;
 		y_offset = TextOffsetY;
-		strncpy(label, ButtonText, 20);
+		strncpy(label, ButtonText, MAXCHARLEN);
 		f = TextFont;
 		ct = CORNER_AUTO;
+		bt = 4;
+		drawit = true;
+		enabled = true;
+		visible = true;
+		debounce = TFT_DEBOUNCE;
+		value = 0; // user controlled for whatever....
+		newcorner = false;
+		Has565Icon = false;
+		HasMonoIcon = false;
+		
+
+	}
+	
+	// color 565 icon, no text
+
+	void init(int16_t ButtonX, int16_t ButtonY, int16_t ButtonWidth, int16_t ButtonHeight,
+		uint16_t OutlineColor, uint16_t ButtonColor, uint16_t TextColor, uint16_t BackgroundColor,
+		const uint16_t  *UpIcon, int16_t IconWidth, int16_t IconHeight, int OffsetLeft, int OffsetTop ) {
+
+		x = ButtonX;
+		y = ButtonY;
+		w = ButtonWidth;
+		h = ButtonHeight;
+		outlinecolor = OutlineColor;
+		fillcolor = ButtonColor;
+		backcolor = BackgroundColor;
+		disablecolorfill = C_DISABLE_LIGHT;
+		disablecolortext = C_DISABLE_DARK;
+		x_offset = OffsetLeft;
+		y_offset = OffsetTop;
+		ct = CORNER_AUTO;
+		Has565Icon = true;
+		HasMonoIcon = false;
+		upicon = UpIcon;
+		iconw = IconWidth;
+		iconh = IconHeight;
+		bt = 4;
+		drawit = true;
+		enabled = true;
+		visible = true;
+		debounce = TFT_DEBOUNCE;
+		value = 0; // user controlled for whatever....
+		newcorner = false;
+
+	}
+	
+
+		// mono icon, no text
+	
+		void init(int16_t ButtonX, int16_t ButtonY, int16_t ButtonWidth, int16_t ButtonHeight, 
+		uint16_t OutlineColor, uint16_t ButtonColor, uint16_t TextColor, uint16_t BackgroundColor, 
+		const unsigned char  *Icon, int16_t IconWidth, int16_t IconHeight, int OffsetLeft, int OffsetTop ) {
+
+		x = ButtonX;
+		y = ButtonY;
+		w = ButtonWidth;
+		h = ButtonHeight;
+		outlinecolor = OutlineColor;
+		fillcolor = ButtonColor;
+		textcolor = TextColor;
+		backcolor = BackgroundColor;
+		disablecolorfill = C_DISABLE_LIGHT;
+		disablecolortext = C_DISABLE_DARK;
+		x_offset = OffsetLeft;
+		y_offset = OffsetTop;
+		ct = CORNER_AUTO;
+		Has565Icon = false;
+		HasMonoIcon = true;
+		monoicon = Icon;
+		iconw = IconWidth;
+		iconh = IconHeight;
+		bt = 4;
 		drawit = true;
 		enabled = true;
 		visible = true;
@@ -569,86 +641,129 @@ public:
 
 	}
 
-	void draw(bool inverted = false) {
+	void draw(bool b_pressed = false) {
 
-		uint16_t fill, outline, text;
+		uint16_t outline, text, fill;
 
 		if (!visible) {
 			return;
 		}
 
-		if (! inverted) {
+		if (!b_pressed) {
 			drawit = true;
 			fill = fillcolor;
 			outline = outlinecolor;
 			text = textcolor;
 		} 
 		else {
-			
 			if (drawit == false) {
-				
 				return;
 			}
+
 			drawit = false;
-			fill =  disablecolorfill;
+			fill =  outlinecolor;
 			outline = outlinecolor;
-			text = fillcolor;
+			text = textcolor;
 		}
 
 		if (newcorner){
 			newcorner = false;
-			d->fillRect(x - (w/2), y - (h/2), w, h, backcolor);
 		}
-
 
 		if (!enabled) {
 
 			if (ct == CORNER_AUTO){
-				d->fillRoundRect(x - (w/2), y - (h/2), w, h, min(w,h)/4, disablecolorfill);
-				d->drawRoundRect(x - (w/2), y - (h/2), w, h, min(w,h)/4, disablecolortext);
+				d->fillRoundRect(x - (w/2)+(bt/2), y - (h/2)+(bt/2), w-bt, h-bt, min(w,h)/4, disablecolorfill);
+				d->drawRoundRect(x - (w/2)+(bt/2), y - (h/2)+(bt/2), w-bt, h-bt, min(w,h)/4-(bt/2), disablecolortext);
 			}
 			else if(ct == CORNER_SQUARE) {
 				d->fillRect(x - (w/2), y - (h/2), w, h, disablecolorfill);
-				d->drawRect(x - (w/2), y - (h/2), w, h, disablecolortext);
+				d->drawRect(x - (w/2)+(bt/2), y - (h/2)+(bt/2), w-bt, h-bt, disablecolortext);
 			}
 			else {
 				d->fillRoundRect(x - (w/2), y - (h/2), w, h, ct, disablecolorfill);
-				d->drawRoundRect(x - (w/2), y - (h/2), w, h, ct, disablecolortext);
+				d->drawRect(x - (w/2)+(bt/2), y - (h/2)+(bt/2), w-bt, h-bt, disablecolorfill);
 			}
 			
-			d->setCursor(x + x_offset  , y + y_offset);
-			d->setFont(f);
-			d->setTextColor(disablecolortext);
-			d->print(label);
+			d->setTextColor(disablecolortext);	
+
 		}
 		else{
-			if (ct == CORNER_AUTO){
-				d->fillRoundRect(x - (w/2), y - (h/2), w, h, min(w,h)/4, fill);
-				d->drawRoundRect(x - (w/2), y - (h/2), w, h, min(w,h)/4, outline);
+						
+			if (ct == CORNER_AUTO){			
+				d->fillRoundRect(x - (w/2)+(bt/2), y - (h/2)+(bt/2), w-bt, h-bt, min(w,h)/4, fill);
+				d->drawRoundRect(x - (w/2)+(bt/2), y - (h/2)+(bt/2), w-bt, h-bt, min(w,h)/4-(bt/2), outline);
 			}
 			else if(ct == CORNER_SQUARE) {
 				d->fillRect(x - (w/2), y - (h/2), w, h, fill);
-				d->drawRect(x - (w/2), y - (h/2), w, h, outline);
+				d->drawRect(x - (w/2)+(bt/2), y - (h/2)+(bt/2), w-bt, h-bt, outline);
 			}
 			else {
-				d->fillRoundRect(x - (w/2), y - (h/2), w, h, ct, fill);
-				d->drawRoundRect(x - (w/2), y - (h/2), w, h, ct, outline);
+
+				// draw border
+				d->fillRoundRect(x - (w/2), y - (h/2), w, h, ct, outline);
+				// fill it in
+				d->fillRoundRect(x - (w/2)+(bt/1), y - (h/2)+(bt/1), w-(2*bt), h-(2*bt), ct-(bt/2), fill);
+
 			}
 
-			d->setCursor(x + x_offset , y + y_offset);
-			d->setFont(f);
 			d->setTextColor(text);
+
+		}
+
+		if ((!Has565Icon) && (!HasMonoIcon)){
+
+			d->setFont(f);
+
+			if ((x_offset == 0) && (y_offset == 0)){
+				d->getTextBounds(label, 0, 0, &x1, &y1, &w, &h);
+				d->setCursor(x - (w/2), y - (h/2));
+			}
+			else {
+				d->setCursor(x + x_offset , y + y_offset);
+			}
 			d->print(label);
 		}
-		
+		else {
+
+			if (!b_pressed) {
+				if (enabled) {
+					if (Has565Icon){
+						draw565Bitmap(x - (w/2) + x_offset, y-(h/2)+ y_offset, upicon, iconw, iconh );
+					}
+					else if (HasMonoIcon){
+						drawMonoBitmap(x - (w/2) + x_offset, y-(h/2)+ y_offset, monoicon, iconh, iconw, text );
+					}
+				}
+				else {
+					if (Has565Icon){
+						draw565Bitmap(x - (w/2) + x_offset, y-(h/2)+ y_offset, upicon, iconw, iconh );
+					}
+					else if (HasMonoIcon){
+						drawMonoBitmap(x - (w/2) + x_offset, y-(h/2)+ y_offset, monoicon, iconh, iconw, text );
+					}
+				}
+			}
+			else {
+
+					if (Has565Icon){
+						draw565Bitmap(x - (w/2) + x_offset, y-(h/2)+ y_offset, upicon, iconw, iconh );
+					}
+					else if (HasMonoIcon){
+						drawMonoBitmap(x - (w/2) + x_offset, y-(h/2)+ y_offset, monoicon, iconh, iconw, text );
+					}
+			}
+		}
+
+				
 	}
 
 	bool press(int16_t ScreenX, int16_t ScreenY) {
 
 		if ((!enabled) || (!visible)) {
-			delay(debounce);
+
 			return false;
-		}
+		}	
 
 		if ((ScreenX < (x - w/2)) || (ScreenX > (x + w/2))) {
 			return false;
@@ -656,13 +771,15 @@ public:
 		if ((ScreenY < (y - h/2)) || (ScreenY > (y + h/2))) {
 			return false;
 		}
-		delay(debounce);	
+	
 		return true;
 
 	}
 
 	void show() {
+
 		visible = true;
+		draw();
 	}
 
 
@@ -683,16 +800,16 @@ public:
 
 	void disable() { 
 		enabled = false;
+		
 	}
 	void enable() { 
 		enabled = true;
+		
 	}
 
 
-	void resize(int16_t ButtonX, int16_t ButtonY, uint8_t ButtonW, uint8_t ButtonH) {
-		hide();
-		draw();
-		show();
+	void resize(int16_t ButtonX, int16_t ButtonY, int16_t ButtonW, int16_t ButtonH) {
+
 		x = ButtonX;
 		y = ButtonY;
 		w = ButtonW;
@@ -718,12 +835,17 @@ public:
 	}
 
 	void setText(const char *ButtonText) {
-		strncpy(label, ButtonText, 20);
+		strncpy(label, ButtonText, MAXCHARLEN+2);
 	}
 
 	void setCornerRadius(int radius) {
 		newcorner = true;
 		ct = radius;
+	}
+	
+	void setBorderThickness(byte BorderThickness) {
+		newcorner = true;
+		bt = BorderThickness;
 	}
 	
 	bool isEnabled() { 
@@ -738,23 +860,66 @@ public:
 		debounce = Debounce;
 	}
 	
+
 	int value;
 
 private:
 	ILI9488_t3 *d;
 	ILI9488_t3_font_t f;
+	
+	void draw565Bitmap(int16_t x, int16_t y, const uint16_t *bitmap, int16_t w, int16_t h) {
+
+	  uint32_t offset = 0;
+
+	  int j, i;
+
+	  for (i = 0; i < h; i++) {
+		for (j = 0; j < w; j++) {
+		  d->drawPixel(j + x, i + y, bitmap[offset]);
+		  offset++;
+		}
+	  }
+
+	}
+	
+	void drawMonoBitmap(uint16_t x, uint16_t y, const unsigned char *bitmap, uint8_t w, uint8_t h, uint16_t color) {
+
+	  uint8_t sbyte = 0;
+	  uint8_t byteWidth = 0;
+	  uint16_t jj, ii;
+
+	  byteWidth = (w + 7) / 8;
+
+	  for (jj = 0; jj < h; jj++) {
+		for (ii = 0; ii < w; ii++) {
+		  if (ii & 7)  sbyte <<= 1;
+		  else sbyte   = pgm_read_byte(bitmap + jj * byteWidth + ii / 8);
+		  if (sbyte & 0x80) d->drawPixel(x + ii, y + jj, color);
+		}
+	  }
+	}
+
+	int16_t x1 = 0;
+	int16_t y1 = 0;
 	int16_t x, y;
 	uint16_t w, h;
-	int x_offset, y_offset;
+	int16_t x_offset, y_offset;
+	int16_t iconh, iconw;
 	bool redraw;
 	uint16_t outlinecolor, fillcolor, textcolor, backcolor, disablecolorfill, disablecolortext;
 	char label[20];
-	boolean drawit;
+	bool Has565Icon;
+	bool HasMonoIcon;
+	const uint16_t *upicon;
+	const uint16_t *dnicon;
+	const unsigned char *monoicon;
+	bool drawit;
 	bool enabled;
 	int ct;
 	bool visible;
-	byte debounce;
+	uint8_t debounce, bt;
 	bool newcorner;
+
 
 };
 
