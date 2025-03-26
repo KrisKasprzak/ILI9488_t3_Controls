@@ -370,7 +370,7 @@ void CGraph::init(const char *Title, const char *XAxis, const char *YAxis, uint1
 	RedrawGraph = true;
 
 	TextHeight = tf.cap_height;
-
+	ID = 0;
 }
 
 int CGraph::add(const char *name, uint16_t color){
